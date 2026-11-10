@@ -1,0 +1,33 @@
+# Status — irs-simulator
+
+**Current phase:** Planning complete (Phases 0–3). Implementation (Phase 4) has not started.
+**Last updated:** 2026-11-10
+
+| Phase | State | Output |
+|---|---|---|
+| 0 Brainstorming | ✅ Done | `.10x/specs/2026-11-10-irs-simulator-design.md`, README decision log |
+| 1 Strategy | ✅ Done | `decisions/cto/`, `decisions/product-manager/` |
+| 2 Design | ✅ Done | ADR-001, ADR-002, ADR-003, `decisions/architect/`, `decisions/staff-engineer/` |
+| 3 Planning | ✅ Done | `/WORK_PLAN.md`, `decisions/engineering-manager/`, `decisions/senior-engineer/` |
+| 4 Implementation | ⏳ Not started | Kickoff skeleton (M6), then M1–M6 in parallel |
+| 5 Verification | ⏳ | CI green (unit + integration), no `xfail`s left, demo checklist; QA and security reviews in `.10x/reviews/` |
+| 6 Delivery | ⏳ | Local run only (no deployment by requirement); CI runs tests on PRs |
+
+## Task board
+
+| Task | Owner | State |
+|---|---|---|
+| Step 0: kickoff walking skeleton + CI workflow + smoke test | M6 | ☐ |
+| Enable branch protection on `main` (green CI + 1 approval) | Repo owner | ☐ |
+| Swap engine + unit tests + pipeline integration tests | M1 | ☐ |
+| Rate scenarios + editor + tests | M2 | ☐ |
+| Inputs + validation + tests | M3 | ☐ |
+| Summary, table, CSV, formatting + tests | M4 | ☐ |
+| Charts + tests | M5 | ☐ |
+| App shell, theme, explainer, app integration tests, README Running | M6 | ☐ |
+| Integration day: remove `xfail`s + demo checklist | All | ☐ |
+
+When you finish a task, tick it here in your PR, and add your section to `decisions/sde/irs-simulator.md`.
+
+## Blockers
+None.

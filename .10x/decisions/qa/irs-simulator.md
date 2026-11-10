@@ -1,0 +1,11 @@
+# QA — irs-simulator (test plan)
+- **Unit tests** (`tests/unit/`): per module as listed in spec §10.1. Each owner writes their own.
+- **Integration tests** (`tests/integration/`): spec §10.2.
+  - `test_smoke.py` (M6): imports + AppTest run; green from the kickoff skeleton.
+  - `test_pipeline.py` (M1): rates → validation → engine → summary → DataFrame → CSV; invariants Σ net == total_net == last cumulative; position flip negates.
+  - `test_app.py` (M6): AppTest checks of the hero sign, the position flip, the validation gate and the download button.
+  - Tests that depend on unmerged code are `xfail(strict=False)` until integration day, then must pass.
+- Canonical fixture: the spec §3 worked example, in both positions.
+- Edge cases: 1 period, 120 periods, zero rates, negative edited rates, break-even (net 0), boundary limits.
+- **CI** (ADR-003, spec §12): GitHub Actions runs `pytest -q` on every PR and push to `main`.
+- **Quality gate:** CI green + 1 approval to merge; on integration day there are no `xfail`s left and the WORK_PLAN demo checklist has passed.
