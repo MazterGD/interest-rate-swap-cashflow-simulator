@@ -1,0 +1,10 @@
+[theme]
+base = "light"
+primaryColor = "#2F5BEA"              # accent: controls, floating line
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F7F9"  # inputs, expanders
+textColor = "#1F2328"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"

@@ -24,7 +24,7 @@
 | Inputs + validation + tests | M3 | ☐ |
 | Summary, table, CSV, formatting + tests | M4 | ☐ |
 | Charts + tests | M5 | ☐ |
-| App shell, theme, explainer, app integration tests, README Running | M6 | ☐ |
+| App shell, theme, explainer, app integration tests, README Running | M6 | 🔄 Built on `m6-shell`; the app tests stay `xfail` until M1/M3/M4 merge |
 | Integration day: remove `xfail`s + demo checklist | All | ☐ |
 
 When you finish a task, tick it here in your PR, and add your section to `decisions/sde/irs-simulator.md`.

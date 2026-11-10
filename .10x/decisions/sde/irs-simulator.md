@@ -16,3 +16,19 @@ When a PR merges, its author appends a short section:
   - `tests/unit/` exists, but empty (`.gitkeep`).
 - **Notes for members:** `pytest -m "not integration"` exits with code 5 ("no tests collected") until the first unit tests land. That is expected. CI runs the full `pytest`, which passes.
 - **Tech debt:** none. Every placeholder is replaced by its owner.
+
+## M6 — App shell, theme, explainer, app tests (`m6-shell`)
+- **Built:**
+  - `.streamlit/config.toml` (spec §9.3 tokens, verified loaded with no warnings)
+  - `ui/explainer.py` (collapsed `:material/school:` expander, ~105 words, uses the §3 worked example; text in `EXPLAINER_TEXT`)
+  - `tests/unit/test_explainer.py`
+  - `tests/integration/test_app.py`
+  - README Running section confirmed
+  - `app.py` was already final from the kickoff.
+- **App tests:**
+  - `test_page_shell_renders` passes now.
+  - Four tests are `xfail(strict=False)` until integration day: hero verdict (M1+M4), position flip (M1+M3+M4), validation gate (M3), CSV button (M4).
+  - All four were checked to **pass** against throwaway stand-in implementations of M1/M3/M4 (not committed).
+  - The validation-gate test monkeypatches `ui.rates_editor.render_rate_editor` to return 40% rates, so it does not depend on driving `st.data_editor`.
+- **Deviations:** added `tests/unit/test_explainer.py` (not in the original plan; it is now in M6's WORK_PLAN file list). WORK_PLAN M3 now pins the Position control interface (`key="position"`, `Position` enum members as options), which `test_app.py` relies on.
+- **Remaining for M6:** remove the `xfail` marks on integration day.

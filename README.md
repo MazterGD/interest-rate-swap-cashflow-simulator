@@ -52,9 +52,9 @@ Everything recalculates as soon as you change a value. There is no "Run" button.
 
 ## Running it
 
-> Planned commands. Member 6 confirms them once the app is built.
+Requirements: **Python 3.11+** (free). Nothing else to install beyond the two pip packages. Tested with Python 3.11 (CI) and 3.13 using Streamlit 1.67.
 
-Requirements: **Python 3.11+** (free). Nothing else to install beyond the two pip packages.
+> Until every workstream merges, parts of the page show "— TODO" placeholders. That is expected (see [WORK_PLAN.md](WORK_PLAN.md#kickoff-step-0--member-6-about-45-minutes-before-anyone-branches)).
 
 ```bash
 python -m venv .venv
@@ -65,6 +65,8 @@ streamlit run app.py      # opens http://localhost:8501
 pytest                    # run all tests (unit + integration)
 pytest -m "not integration"   # fast loop: unit tests only
 ```
+
+To stop the app, press `Ctrl+C` in the terminal. To use a different port: `streamlit run app.py --server.port 8502`. The theme lives in [.streamlit/config.toml](.streamlit/config.toml).
 
 ### Tests and CI
 - **Unit tests** (`tests/unit/`) check each module on its own. Each module's owner writes them.

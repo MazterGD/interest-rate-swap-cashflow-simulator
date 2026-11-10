@@ -45,7 +45,7 @@ After that commit, each member branches from `main` and **replaces only their ow
 | **M3** | Inputs + validation | `ui/inputs.py`, `swap/validation.py`, `tests/unit/test_validation.py` | §6, §8, §9.1, §10 |
 | **M4** | Results: summary, table, CSV, formatting | `ui/results.py`, `ui/formatting.py`, `swap/export.py`, `tests/unit/test_export.py`, `tests/unit/test_formatting.py` | §6, §9.1–9.3, §9.5, §10 |
 | **M5** | Charts | `ui/chart.py`, `tests/unit/test_chart.py` | §6, §9.2–9.4, §10 |
-| **M6** | App shell, theme, explainer, CI, app integration tests | `app.py`, `.streamlit/config.toml`, `ui/explainer.py`, `tests/integration/test_smoke.py`, `tests/integration/test_app.py`, `.github/workflows/tests.yml`, `pyproject.toml`, `requirements.txt`, `.gitignore`, `README.md` (Running section), kickoff skeleton | §5, §9, §10, §11, §12 |
+| **M6** | App shell, theme, explainer, CI, app integration tests | `app.py`, `.streamlit/config.toml`, `ui/explainer.py`, `tests/unit/test_explainer.py`, `tests/integration/test_smoke.py`, `tests/integration/test_app.py`, `.github/workflows/tests.yml`, `pyproject.toml`, `requirements.txt`, `.gitignore`, `README.md` (Running section), kickoff skeleton | §5, §9, §10, §11, §12 |
 
 `swap/models.py` has no single owner. It is frozen, and any change goes through the contract-change process.
 
@@ -68,7 +68,7 @@ After that commit, each member branches from `main` and **replaces only their ow
 
 ### M3 — Inputs + validation
 **Goal:** swap terms entered in seconds, with bad values impossible or clearly explained.
-- [ ] `render_swap_inputs()`: the spec §8 widgets, defaults and ranges, laid out as in the spec §9.1 mock-up (2×2 grid plus a Position row). Give every widget a stable `key=` (for example `position`) so AppTest can find it. Sentence-case labels, and only "Notional" gets `help=`. Convert percent to a decimal before building `SwapInputs`.
+- [ ] `render_swap_inputs()`: the spec §8 widgets, defaults and ranges, laid out as in the spec §9.1 mock-up (2×2 grid plus a Position row). Give every widget a stable `key=` so AppTest can find it. The Position control must be `st.segmented_control(..., key="position")`, with the **`Position` enum members as options** (show "Pay fixed" / "Receive fixed" through `format_func`), because `tests/integration/test_app.py` relies on this. Sentence-case labels, and only "Notional" gets `help=`. Convert percent to a decimal before building `SwapInputs`.
 - [ ] `validate_inputs` and `validate_rates` using the spec §8 limits. Messages are plain English and name the period for rate errors.
 - [ ] Unit tests: each limit at boundary, just inside and just outside; a valid default input gives `[]`; a wrong rate-list length is reported.
 - **Done when** an invalid state gives one clear message, valid defaults give none, and CI is green.
