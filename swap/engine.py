@@ -1,7 +1,4 @@
-"""Swap cash-flow engine (spec §3). Owner: M1.
-
-PLACEHOLDER from the kickoff skeleton — M1 replaces the bodies below.
-"""
+"""Swap cash-flow engine (spec §3). Owner: M1."""
 from swap.models import PeriodCashFlow, SwapInputs, SwapSummary
 
 
@@ -10,30 +7,48 @@ def simulate_swap(inputs: SwapInputs, floating_rates: list[float]) -> list[Perio
 
     Raises ValueError if len(floating_rates) != inputs.num_periods. No rounding.
     """
-    # TODO(M1): real formulas. Placeholder returns zero money per period.
-    alpha = inputs.accrual_fraction
-    return [
-        PeriodCashFlow(
-            period=i,
-            time_years=i * alpha,
-            floating_rate=rate,
-            fixed_payment=0.0,
-            floating_payment=0.0,
-            net_settlement=0.0,
-            cumulative_net=0.0,
+    if len(floating_rates) != inputs.num_periods:
+        raise ValueError(
+            f"Expected {inputs.num_periods} floating rates, got {len(floating_rates)}"
         )
-        for i, rate in enumerate(floating_rates, start=1)
-    ]
+
+    alpha = inputs.accrual_fraction
+    fixed_payment = inputs.notional * inputs.fixed_rate * alpha
+    cumulative_net = 0.0
+    cash_flows = []
+
+    for period, floating_rate in enumerate(floating_rates, start=1):
+        floating_payment = inputs.notional * floating_rate * alpha
+        net_settlement = floating_payment - fixed_payment
+        if inputs.position.value == "receive_fixed":
+            net_settlement = -net_settlement
+        cumulative_net += net_settlement
+        cash_flows.append(
+            PeriodCashFlow(
+                period=period,
+                time_years=period * alpha,
+                floating_rate=floating_rate,
+                fixed_payment=fixed_payment,
+                floating_payment=floating_payment,
+                net_settlement=net_settlement,
+                cumulative_net=cumulative_net,
+            )
+        )
+
+    return cash_flows
 
 
 def summarize(cash_flows: list[PeriodCashFlow]) -> SwapSummary:
     """Aggregate cash flows into totals. An empty list gives all zeros."""
-    # TODO(M1): real totals. Placeholder returns zeros.
+    if not cash_flows:
+        return SwapSummary(0.0, 0.0, 0.0, 0.0, 0, 0)
+
     return SwapSummary(
-        total_fixed=0.0,
-        total_floating=0.0,
-        total_net=0.0,
-        average_floating_rate=0.0,
-        periods_receiving=0,
-        periods_paying=0,
+        total_fixed=sum(flow.fixed_payment for flow in cash_flows),
+        total_floating=sum(flow.floating_payment for flow in cash_flows),
+        total_net=sum(flow.net_settlement for flow in cash_flows),
+        average_floating_rate=sum(flow.floating_rate for flow in cash_flows)
+        / len(cash_flows),
+        periods_receiving=sum(flow.net_settlement > 0 for flow in cash_flows),
+        periods_paying=sum(flow.net_settlement < 0 for flow in cash_flows),
     )

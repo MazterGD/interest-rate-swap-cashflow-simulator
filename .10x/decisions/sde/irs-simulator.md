@@ -33,6 +33,12 @@ When a PR merges, its author appends a short section:
 - **Deviations:** added `tests/unit/test_explainer.py` (not in the original plan; it is now in M6's WORK_PLAN file list). WORK_PLAN M3 now pins the Position control interface (`key="position"`, `Position` enum members as options), which `test_app.py` relies on.
 - **Remaining for M6:** remove the `xfail` marks on integration day.
 
+## M1 — Swap engine + pipeline tests
+- **Built:** Implemented the frozen `simulate_swap` and `summarize` contracts, including position-aware net settlements, cumulative totals, mismatch errors, zero/negative rates, and empty summaries. Added canonical worked-example, edge-case, and cross-module pipeline tests.
+- **Verified:** Edited modules and tests compile; direct checks pass for the worked example, negative rates, and 30-year quarterly input.
+- **Deviations:** None.
+- **Verified:** The complete suite passes with the M1 additions; remaining `xfail`/`xpass` results belong to the parallel integration workstreams.
+
 ## M3 — Inputs + validation (`M3-mok`, 2026-11-11)
 - **Built:**
   - `ui/inputs.py`: the spec §8 inputs in a 2×2 grid plus Position, with the specified defaults, limits and steps, stable widget keys, and a Notional tooltip.

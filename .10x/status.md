@@ -19,7 +19,7 @@
 |---|---|---|
 | Step 0: kickoff walking skeleton + CI workflow + smoke test | M6 | ☑ (2026-11-10) |
 | Enable branch protection on `main` (green CI + 1 approval) | Repo owner | ☐ |
-| Swap engine + unit tests + pipeline integration tests | M1 | ☐ |
+| Swap engine + unit tests + pipeline integration tests | M1 | ☑ (2026-11-11) |
 | Rate scenarios + editor + tests | M2 | ☐ |
 | Inputs + validation + tests | M3 | ☑ Implemented and verified locally on `M3-mok` (2026-11-11); PR, CI and review pending |
 | Summary, table, CSV, formatting + tests | M4 | ☐ |
