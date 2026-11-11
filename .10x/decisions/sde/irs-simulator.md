@@ -40,3 +40,22 @@ When a PR merges, its author appends a short section:
 - **Deviations:** none in functionality or frozen contracts; used the user's existing `M4` branch name.
 - **Remaining:** M1's engine is still a placeholder on this branch, so the full app currently displays zero totals. PR/CI, team integration and opening the CSV in Excel remain to be checked. Existing integration marks are left for their owners to remove.
 - **Tech debt:** none added.
+
+## M5 — Charts and tests (`m5-chart`, 2026-11-11)
+- **Built:**
+  - `ui/chart.py`: `build_settlement_chart` and `render_settlement_chart` using Altair `vconcat`.
+    - **Top panel (~140px):** floating-rate solid line (`ACCENT = "#2F5BEA"`) with points + fixed-rate dashed horizontal rule (`FIXED_LINE = "#8C959F"`), Y axis formatted as `%`.
+    - **Bottom panel (~220px):** net settlement bars conditionally coloured (`POSITIVE = "#1A7F37"` when net > 0, `NEGATIVE = "#CF222E"` when net ≤ 0), with zero baseline rule, and tooltips showing Period, Floating rate (%), and Net settlement ($).
+    - Shared ordinal X axis (`Period:O`), muted axis labels, no chart titles or legends per spec §9.4.
+    - Gracefully handles empty cash-flow inputs without crashing.
+    - `render_settlement_chart`: rendered via `st.altair_chart` with `use_container_width=True`.
+- **Tests:** `tests/unit/test_chart.py` covers:
+  - Top-level `vconcat` structure with exactly 2 subcharts.
+  - Conditional colour encoding based on net sign.
+  - Safe handling of empty input lists (`[]`).
+  - Safe handling of 120 periods (30-year quarterly swap).
+  - Top panel height (140px) and bottom panel height (220px).
+  - Worked example data integrity (positive and negative net settlements).
+- **Verified:** All 7 M5 unit tests pass (`pytest tests/unit/test_chart.py -v`). Visual verification confirmed with the running Streamlit server.
+- **Deviations:** Used `use_container_width=True` instead of `width="stretch"` in `render_settlement_chart` for compatibility with the installed Streamlit version.
+- **Tech debt:** None.
