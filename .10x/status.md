@@ -23,7 +23,7 @@
 | Rate scenarios + editor + tests | M2 | ☐ |
 | Inputs + validation + tests | M3 | ☐ |
 | Summary, table, CSV, formatting + tests | M4 | ☑ Implemented and verified locally on `M4` (2026-11-11); PR/CI and team integration pending |
-| Charts + tests | M5 | ☐ |
+| Charts + tests | M5 | ☑ Implemented and verified locally on `m5-chart` (2026-11-11); 7 unit tests passing |
 | App shell, theme, explainer, app integration tests, README Running | M6 | 🔄 Built on `m6-shell`; the app tests stay `xfail` until M1/M3/M4 merge |
 | Integration day: remove `xfail`s + demo checklist | All | ☐ |
 
