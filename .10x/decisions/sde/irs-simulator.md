@@ -32,3 +32,11 @@ When a PR merges, its author appends a short section:
   - The validation-gate test monkeypatches `ui.rates_editor.render_rate_editor` to return 40% rates, so it does not depend on driving `st.data_editor`.
 - **Deviations:** added `tests/unit/test_explainer.py` (not in the original plan; it is now in M6's WORK_PLAN file list). WORK_PLAN M3 now pins the Position control interface (`key="position"`, `Position` enum members as options), which `test_app.py` relies on.
 - **Remaining for M6:** remove the `xfail` marks on integration day.
+
+## M4 — Summary, table, CSV and formatting (`M4`, 2026-11-11)
+- **Built:** money and decimal-rate formatting, signed amounts with U+2212 minus, receive/pay/break-even hero, verdict caption, fixed/floating metrics, styled cash-flow table and CSV download. Export preserves numeric precision in the DataFrame and formats money to two decimals only in the CSV without changing the source frame.
+- **Tests:** 19 M4 unit cases cover signs, zero, rounding, the worked example, column order, percentage conversion, CSV round-trip, precision preservation and empty exports.
+- **Verified:** full `pytest` run: 35 passed, 3 xfailed, 1 xpassed (CSV button now works), using Python 3.12 and Streamlit 1.67. Isolated Streamlit AppTest checks passed for +$5,000 receive, −$5,000 pay, neutral zero, leg metrics, verdict, table colours, download presence and empty table.
+- **Deviations:** none in functionality or frozen contracts; used the user's existing `M4` branch name.
+- **Remaining:** M1's engine is still a placeholder on this branch, so the full app currently displays zero totals. PR/CI, team integration and opening the CSV in Excel remain to be checked. Existing integration marks are left for their owners to remove.
+- **Tech debt:** none added.
