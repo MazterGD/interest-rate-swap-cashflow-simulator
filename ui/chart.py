@@ -113,5 +113,5 @@ def render_settlement_chart(
     """Render the chart at full container width (spec §6.2)."""
     st.altair_chart(
         build_settlement_chart(cash_flows, fixed_rate),
-        use_container_width=True,
+        width='stretch',
     )
