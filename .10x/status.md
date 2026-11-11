@@ -1,7 +1,7 @@
 # Status — irs-simulator
 
 **Current phase:** Implementation (Phase 4). The kickoff skeleton is on `main`, so members can branch now.
-**Last updated:** 2026-11-10
+**Last updated:** 2026-11-11
 
 | Phase | State | Output |
 |---|---|---|
@@ -21,7 +21,7 @@
 | Enable branch protection on `main` (green CI + 1 approval) | Repo owner | ☐ |
 | Swap engine + unit tests + pipeline integration tests | M1 | ☑ (2026-11-11) |
 | Rate scenarios + editor + tests | M2 | ☐ |
-| Inputs + validation + tests | M3 | ☐ |
+| Inputs + validation + tests | M3 | ☑ Implemented and verified locally on `M3-mok` (2026-11-11); PR, CI and review pending |
 | Summary, table, CSV, formatting + tests | M4 | ☐ |
 | Charts + tests | M5 | ☐ |
 | App shell, theme, explainer, app integration tests, README Running | M6 | 🔄 Built on `m6-shell`; the app tests stay `xfail` until M1/M3/M4 merge |
