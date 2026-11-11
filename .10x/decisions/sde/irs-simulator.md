@@ -33,29 +33,16 @@ When a PR merges, its author appends a short section:
 - **Deviations:** added `tests/unit/test_explainer.py` (not in the original plan; it is now in M6's WORK_PLAN file list). WORK_PLAN M3 now pins the Position control interface (`key="position"`, `Position` enum members as options), which `test_app.py` relies on.
 - **Remaining for M6:** remove the `xfail` marks on integration day.
 
-## M4 — Summary, table, CSV and formatting (`M4`, 2026-11-11)
-- **Built:** money and decimal-rate formatting, signed amounts with U+2212 minus, receive/pay/break-even hero, verdict caption, fixed/floating metrics, styled cash-flow table and CSV download. Export preserves numeric precision in the DataFrame and formats money to two decimals only in the CSV without changing the source frame.
-- **Tests:** 19 M4 unit cases cover signs, zero, rounding, the worked example, column order, percentage conversion, CSV round-trip, precision preservation and empty exports.
-- **Verified:** full `pytest` run: 35 passed, 3 xfailed, 1 xpassed (CSV button now works), using Python 3.12 and Streamlit 1.67. Isolated Streamlit AppTest checks passed for +$5,000 receive, −$5,000 pay, neutral zero, leg metrics, verdict, table colours, download presence and empty table.
-- **Deviations:** none in functionality or frozen contracts; used the user's existing `M4` branch name.
-- **Remaining:** M1's engine is still a placeholder on this branch, so the full app currently displays zero totals. PR/CI, team integration and opening the CSV in Excel remain to be checked. Existing integration marks are left for their owners to remove.
-- **Tech debt:** none added.
-
-## M5 — Charts and tests (`m5-chart`, 2026-11-11)
+## M3 — Inputs + validation (`M3-mok`, 2026-11-11)
 - **Built:**
-  - `ui/chart.py`: `build_settlement_chart` and `render_settlement_chart` using Altair `vconcat`.
-    - **Top panel (~140px):** floating-rate solid line (`ACCENT = "#2F5BEA"`) with points + fixed-rate dashed horizontal rule (`FIXED_LINE = "#8C959F"`), Y axis formatted as `%`.
-    - **Bottom panel (~220px):** net settlement bars conditionally coloured (`POSITIVE = "#1A7F37"` when net > 0, `NEGATIVE = "#CF222E"` when net ≤ 0), with zero baseline rule, and tooltips showing Period, Floating rate (%), and Net settlement ($).
-    - Shared ordinal X axis (`Period:O`), muted axis labels, no chart titles or legends per spec §9.4.
-    - Gracefully handles empty cash-flow inputs without crashing.
-    - `render_settlement_chart`: rendered via `st.altair_chart` with `use_container_width=True`.
-- **Tests:** `tests/unit/test_chart.py` covers:
-  - Top-level `vconcat` structure with exactly 2 subcharts.
-  - Conditional colour encoding based on net sign.
-  - Safe handling of empty input lists (`[]`).
-  - Safe handling of 120 periods (30-year quarterly swap).
-  - Top panel height (140px) and bottom panel height (220px).
-  - Worked example data integrity (positive and negative net settlements).
-- **Verified:** All 7 M5 unit tests pass (`pytest tests/unit/test_chart.py -v`). Visual verification confirmed with the running Streamlit server.
-- **Deviations:** Used `use_container_width=True` instead of `width="stretch"` in `render_settlement_chart` for compatibility with the installed Streamlit version.
-- **Tech debt:** None.
+  - `ui/inputs.py`: the spec §8 inputs in a 2×2 grid plus Position, with the specified defaults, limits and steps, stable widget keys, and a Notional tooltip.
+  - Position uses `Position` enum options and `key="position"`. Deselected frequency and position controls fall back to semi-annual and Pay fixed. Fixed-rate percentages are converted to decimals.
+  - `swap/validation.py`: checks swap-term limits, whole-year tenor, allowed frequency and position, floating-rate count, and inclusive −5% to 30% floating-rate bounds. Rate errors identify the one-based period. NaN and infinite numeric values fail the range checks.
+  - `tests/unit/test_validation.py`: 62 cases covering valid defaults, boundaries and values immediately inside/outside, invalid terms, non-finite values, rate counts, period-specific messages, 1/120 periods, and isolated input-widget interactions via AppTest.
+- **Verified:**
+  - Python 3.14.10, Streamlit 1.67.0: M3 tests **62 passed**; full `python -m pytest -q -rxX` **78 passed, 3 xfailed, 1 xpassed**.
+  - The XPASS is M6's invalid-rate validation-gate test: it now succeeds with the real M3 validator. Its existing marker remains for M6 to remove on integration day. The three remaining expected failures depend on unfinished M1/M4 features.
+  - A separate localhost Streamlit instance with the agent API verified default controls, changed terms (including 30-year quarterly and Receive fixed), and deselection without exceptions or new console warnings. The temporary instance was stopped afterwards.
+- **Deviations:** retained the user's existing member branch `M3-mok`; isolated widget tests share M3's owned test file. No dependency or frozen-contract changes. Static type checking was not run: no checker is configured/installed and the project forbids new dependencies.
+- **Remaining:** push/open the M3 PR when requested, obtain a green GitHub Actions run and teammate approval. Local verification does not certify remote CI or branch protection. Whole-app financial demo checks await the other members' implementations.
+- **Tech debt:** none introduced.
