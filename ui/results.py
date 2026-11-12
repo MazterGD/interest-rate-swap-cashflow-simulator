@@ -1,4 +1,4 @@
-"""Headline summary and cash-flow table with CSV download (spec §9). Owner: M4."""
+"""Hero result, insight chips and cash-flow table with CSV download (spec §9). Owner: M4."""
 import streamlit as st
 
 from swap.export import cash_flows_to_dataframe, to_csv_bytes
@@ -6,28 +6,64 @@ from swap.models import PeriodCashFlow, SwapInputs, SwapSummary
 from ui.formatting import MUTED, NEGATIVE, POSITIVE, fmt_money, fmt_rate, fmt_signed_money
 
 
-def render_summary(summary: SwapSummary, inputs: SwapInputs) -> None:
-    """Hero label + amount, verdict caption, Fixed leg / Floating leg metrics."""
-    if summary.total_net > 0:
-        label, colour = "You receive", POSITIVE
-    elif summary.total_net < 0:
-        label, colour = "You pay", NEGATIVE
-    else:
-        label, colour = "You break even", MUTED
+def _years(tenor: int) -> str:
+    return f"{tenor} year" if tenor == 1 else f"{tenor} years"
 
-    st.caption(label)
+
+def render_summary(summary: SwapSummary, inputs: SwapInputs) -> None:
+    """Hero card: label, amount and verdict on the left; the two legs stacked on the right."""
+    if summary.total_net > 0:
+        label, tone = "You receive", "receive"
+    elif summary.total_net < 0:
+        label, tone = "You pay", "pay"
+    else:
+        label, tone = "You break even", "even"
+
     st.markdown(
-        f'<span style="color: {colour}; font-size: 3.5rem; font-weight: 700;">'
-        f'{fmt_signed_money(summary.total_net)}</span>',
+        f'<section class="irs-hero irs-hero--{tone}" aria-label="Result">'
+        '<div class="irs-hero__main">'
+        f'<div class="irs-hero__label">{label}</div>'
+        f'<div class="irs-hero__amount">{fmt_signed_money(summary.total_net)}</div>'
+        f'<div class="irs-hero__verdict">over {_years(inputs.tenor_years)} · floating averaged '
+        f"{fmt_rate(summary.average_floating_rate)} vs {fmt_rate(inputs.fixed_rate)} fixed</div>"
+        "</div>"
+        '<div class="irs-legs">'
+        '<div class="irs-leg irs-leg--fixed"><div class="irs-leg__name">'
+        '<span class="irs-leg__dot"></span>Fixed leg · Party A pays</div>'
+        f'<div class="irs-leg__value">{fmt_money(summary.total_fixed)}</div></div>'
+        '<div class="irs-leg irs-leg--floating"><div class="irs-leg__name">'
+        '<span class="irs-leg__dot"></span>Floating leg · Party B pays</div>'
+        f'<div class="irs-leg__value">{fmt_money(summary.total_floating)}</div></div>'
+        "</div></section>",
         unsafe_allow_html=True,
     )
-    st.caption(
-        f"over {inputs.tenor_years} years · floating averaged "
-        f"{fmt_rate(summary.average_floating_rate)} vs {fmt_rate(inputs.fixed_rate)} fixed"
+
+
+def render_insights(
+    cash_flows: list[PeriodCashFlow], summary: SwapSummary, inputs: SwapInputs
+) -> None:
+    """Three chips that turn the totals into lessons (spec §9.6, D9)."""
+    if not cash_flows:
+        return
+    largest = max(cash_flows, key=lambda flow: abs(flow.net_settlement))
+    # Equal accruals and a constant fixed leg mean the swap nets to zero when K = average L.
+    chips = [
+        ("Break-even fixed rate", fmt_rate(summary.average_floating_rate),
+         "The fixed rate that would make the total net settlement zero: the average floating rate."),
+        ("Periods in your favour", f"{summary.periods_receiving} of {len(cash_flows)}",
+         f"You pay in {summary.periods_paying}; the rest net to zero."),
+        ("Largest settlement", f"{fmt_signed_money(largest.net_settlement)} in period {largest.period}",
+         "The single period with the biggest net payment, from your side."),
+    ]
+    st.markdown(
+        '<div class="irs-chips">'
+        + "".join(
+            f'<span class="irs-chip" title="{tip}">{name} <strong>{value}</strong></span>'
+            for name, value, tip in chips
+        )
+        + "</div>",
+        unsafe_allow_html=True,
     )
-    fixed, floating = st.columns(2)
-    fixed.metric("Fixed leg", fmt_money(summary.total_fixed))
-    floating.metric("Floating leg", fmt_money(summary.total_floating))
 
 
 def render_cash_flow_table(cash_flows: list[PeriodCashFlow]) -> None:
@@ -55,7 +91,7 @@ def render_cash_flow_table(cash_flows: list[PeriodCashFlow]) -> None:
     }).set_properties(**{"text-align": "right"}).apply(
         net_colour, subset=["Net settlement"]
     )
-    with st.expander("Cash-flow table", expanded=True):
+    with st.expander("Payment schedule: every period", expanded=False):
         st.dataframe(styled, hide_index=True, width="stretch")
         st.download_button(
             "Download CSV", data=to_csv_bytes(df),

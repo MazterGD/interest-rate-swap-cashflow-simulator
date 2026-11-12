@@ -1,10 +1,17 @@
 [theme]
 base = "light"
-primaryColor = "#2F5BEA"              # accent: controls, floating line
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F6F7F9"  # inputs, expanders
-textColor = "#1F2328"
+primaryColor = "#4F46E5"              # indigo: controls, selection, focus
+backgroundColor = "#F6F7FB"           # cool off-white page
+secondaryBackgroundColor = "#ECEEF5"  # inputs, segmented controls
+textColor = "#0F172A"
 font = "sans serif"
+baseRadius = "0.75rem"
+buttonRadius = "full"
+borderColor = "#E2E5EE"
+showWidgetBorder = true
+linkColor = "#4F46E5"
+headingFontWeights = [700, 650, 600]
+dataframeHeaderBackgroundColor = "#F1F3F8"
 
 [client]
 toolbarMode = "minimal"

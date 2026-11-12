@@ -45,7 +45,7 @@ After that commit, each member branches from `main` and **replaces only their ow
 | **M3** | Inputs + validation | `ui/inputs.py`, `swap/validation.py`, `tests/unit/test_validation.py` | §6, §8, §9.1, §10 |
 | **M4** | Results: summary, table, CSV, formatting | `ui/results.py`, `ui/formatting.py`, `swap/export.py`, `tests/unit/test_export.py`, `tests/unit/test_formatting.py` | §6, §9.1–9.3, §9.5, §10 |
 | **M5** | Charts | `ui/chart.py`, `tests/unit/test_chart.py` | §6, §9.2–9.4, §10 |
-| **M6** | App shell, theme, explainer, CI, app integration tests | `app.py`, `.streamlit/config.toml`, `ui/explainer.py`, `ui/walkthrough.py`, `tests/unit/test_explainer.py`, `tests/unit/test_walkthrough.py`, `tests/integration/test_smoke.py`, `tests/integration/test_app.py`, `.github/workflows/tests.yml`, `pyproject.toml`, `requirements.txt`, `.gitignore`, `README.md` (Running section), kickoff skeleton | §5, §9, §10, §11, §12 |
+| **M6** | App shell, theme, explainer, CI, app integration tests | `app.py`, `.streamlit/config.toml`, `ui/explainer.py`, `ui/walkthrough.py`, `ui/flow_diagram.py`, `ui/theme.py`, `tests/unit/test_explainer.py`, `tests/unit/test_walkthrough.py`, `tests/unit/test_flow_diagram.py`, `tests/integration/test_smoke.py`, `tests/integration/test_app.py`, `.github/workflows/tests.yml`, `pyproject.toml`, `requirements.txt`, `.gitignore`, `README.md` (Running section), kickoff skeleton | §5, §9, §10, §11, §12 |
 
 `swap/models.py` has no single owner. It is frozen, and any change goes through the contract-change process.
 
@@ -130,6 +130,8 @@ To change a product decision (scope, stack, UI rule, CI), follow the README [dec
    - The downloaded CSV opens in Excel with the correct columns.
    - *(D8)* Enter the assignment-brief sample (10,000,000 · 8% · 1 yr · quarterly · rates 6.5/7/9/8.5): Pay fixed shows −$25,000, Receive fixed +$25,000, and the walkthrough for period 1 reads "Party A pays Party B $37,500.00".
    - *(D8)* Click the selected preset again: nothing crashes.
+   - *(D9)* Enter the assignment example (10,000,000 · 8% · 1 yr · quarterly · edit the rates to 6.5/7/9/8.5), then click period 3 in the chart: the walkthrough jumps to period 3 and the diagram shows Party B paying Party A $25,000.
+   - *(D10)* At a laptop width (1280 px), every control in the left rail is fully visible, and the whole page scrolls as one: no part of the page has its own scrollbar.
 3. Fix bugs in the owner's file only. Each fix comes with a test that would have caught it.
 
 ## Timeline (suggested)

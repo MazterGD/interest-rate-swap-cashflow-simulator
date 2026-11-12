@@ -3,13 +3,20 @@
 Reads values already computed by the engine; it never recalculates a cash flow.
 """
 from dataclasses import dataclass
+from html import escape
 
 import streamlit as st
 
 from swap.models import PeriodCashFlow, Position, SwapInputs
-from ui.formatting import MUTED, NEGATIVE, POSITIVE, fmt_rate, fmt_signed_money
+from ui.flow_diagram import build_flow_svg
+from ui.formatting import FIXED, FLOATING, fmt_rate, fmt_signed_money
 
 WALKTHROUGH_LABEL = "Show the maths, step by step"
+PERIOD_KEY = "walkthrough_period"  # shared with ui/chart.py: clicking a bar sets it
+
+# The fixed and floating symbols carry their leg colours, matching the chart and diagram.
+P_FIXED = r"\textcolor{" + FIXED + r"}{P_{\text{fixed}}}"
+P_FLOAT = r"\textcolor{" + FLOATING + r"}{P_{\text{float}}}"
 
 RULE_OF_THUMB = (
     "Rule of thumb: when floating is above fixed, the fixed payer (Party A) receives the "
@@ -59,8 +66,8 @@ def settlement_sentence(flow: PeriodCashFlow, inputs: SwapInputs) -> str:
     comparison = "above" if party_a_receives else "below"
     verb = "receive" if flow.net_settlement > 0 else "pay"
     return (
-        f"Floating ({floating}) is {comparison} fixed ({fixed}), so **{payer} pays {receiver} "
-        f"${amount:,.2f}**. {you}, so you {verb} {fmt_signed_money(flow.net_settlement)}."
+        f"Floating ({floating}) is {comparison} fixed ({fixed}), so {payer} pays {receiver} "
+        f"${amount:,.2f}. {you}, so you {verb} {fmt_signed_money(flow.net_settlement)}."
     )
 
 
@@ -75,9 +82,7 @@ def build_steps(flow: PeriodCashFlow, inputs: SwapInputs) -> list[Step]:
         if pay_fixed
         else "As the fixed receiver (Party B), your net is fixed minus floating."
     )
-    net_formula = (
-        r"P_{\text{float}} - P_{\text{fixed}}" if pay_fixed else r"P_{\text{fixed}} - P_{\text{float}}"
-    )
+    net_formula = f"{P_FLOAT} - {P_FIXED}" if pay_fixed else f"{P_FIXED} - {P_FLOAT}"
     first, second = (
         (flow.floating_payment, flow.fixed_payment) if pay_fixed
         else (flow.fixed_payment, flow.floating_payment)
@@ -91,13 +96,13 @@ def build_steps(flow: PeriodCashFlow, inputs: SwapInputs) -> list[Step]:
         Step(
             "2. Fixed leg (Party A pays)",
             "Notional × fixed rate × year fraction. It is the same every period.",
-            rf"P_{{\text{{fixed}}}} = N \times K \times \alpha = {_tex_number(n)} \times "
+            P_FIXED + rf" = N \times K \times \alpha = {_tex_number(n)} \times "
             rf"{_tex_rate(k)} \times {_tex_alpha(alpha)} = {_tex_money(flow.fixed_payment)}",
         ),
         Step(
             "3. Floating leg (Party B pays)",
             "Notional × this period's floating rate × year fraction. It changes when the rate resets.",
-            rf"P_{{\text{{float}}}} = N \times L_{{{i}}} \times \alpha = {_tex_number(n)} \times "
+            P_FLOAT + rf" = N \times L_{{{i}}} \times \alpha = {_tex_number(n)} \times "
             rf"{_tex_rate(flow.floating_rate)} \times {_tex_alpha(alpha)} = "
             rf"{_tex_money(flow.floating_payment)}",
         ),
@@ -116,32 +121,44 @@ def build_steps(flow: PeriodCashFlow, inputs: SwapInputs) -> list[Step]:
     ]
 
 
+def _selected_period(num_periods: int) -> int:
+    """Keep the shared period state valid when the number of periods shrinks."""
+    current = st.session_state.get(PERIOD_KEY, 1)
+    if not isinstance(current, int) or not 1 <= current <= num_periods:
+        st.session_state[PERIOD_KEY] = 1
+    return st.session_state.get(PERIOD_KEY, 1)
+
+
 def render_walkthrough(cash_flows: list[PeriodCashFlow], inputs: SwapInputs) -> None:
-    """An open expander that walks through one chosen period with the real numbers."""
+    """Open expander: period picker, Party A/B flow diagram, then the five formula steps."""
     if not cash_flows:
         return
     with st.expander(WALKTHROUGH_LABEL, expanded=True):
         if len(cash_flows) > 1:
+            _selected_period(len(cash_flows))
             period = st.select_slider(
                 "Walk through period",
                 options=[flow.period for flow in cash_flows],
-                value=1,
-                key="walkthrough_period",
-                help="Pick any period to see its numbers plugged into the formulas.",
+                key=PERIOD_KEY,
+                help="Drag, or click a bar in the chart above, to see that period's numbers.",
             )
         else:
             period = 1
         flow = cash_flows[period - 1]
 
-        for step in build_steps(flow, inputs):
-            st.markdown(f"**{step.title}**  \n{step.explanation}")
-            st.latex(step.latex)
-
-        colour = POSITIVE if flow.net_settlement > 0 else NEGATIVE if flow.net_settlement < 0 else MUTED
-        sentence = settlement_sentence(flow, inputs)
-        st.markdown(
-            f'<div style="border-left: 4px solid {colour}; padding-left: 0.75rem;">\n\n'
-            f"{sentence}\n\n</div>",
-            unsafe_allow_html=True,
-        )
-        st.caption(RULE_OF_THUMB)
+        # Full page width (D10): the picture of who pays whom beside the maths that proves it.
+        picture, maths = st.columns([5, 6], gap="large")
+        with picture:
+            st.markdown(
+                f'<div class="irs-flow">{build_flow_svg(flow, inputs)}</div>'
+                f'<p class="irs-flow__note">Notional ${inputs.notional:,.0f}: used to size the '
+                "payments, never exchanged.</p>"
+                f'<p class="irs-verdict"><strong>{escape(settlement_sentence(flow, inputs))}'
+                "</strong></p>",
+                unsafe_allow_html=True,
+            )
+            st.caption(RULE_OF_THUMB)
+        with maths, st.container(key="maths_steps"):
+            for step in build_steps(flow, inputs):
+                st.markdown(f"**{step.title}**  \n{step.explanation}")
+                st.latex(step.latex)
