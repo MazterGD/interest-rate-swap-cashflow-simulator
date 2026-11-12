@@ -40,3 +40,19 @@ def test_generate_rates_handles_single_period() -> None:
     for preset in RatePreset:
         result = generate_rates(preset, 1, 0.03)
         assert result == pytest.approx([0.03])
+
+
+def _render_editor() -> None:
+    import streamlit as st
+    from ui.rates_editor import render_rate_editor
+
+    st.session_state["rates"] = render_rate_editor(4)
+
+
+def test_deselecting_the_preset_falls_back_to_rising_without_crashing() -> None:
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_function(_render_editor).run()
+    at.segmented_control(key="preset").set_value(None).run()
+    assert not at.exception
+    assert at.session_state["rates"] == pytest.approx([0.035, 0.0375, 0.04, 0.0425])

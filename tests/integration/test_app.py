@@ -1,7 +1,6 @@
 """Full-app integration tests via Streamlit AppTest (spec §10.2). Owner: M6.
 
-Tests that need other members' real code are xfail(strict=False) until integration day
-(WORK_PLAN). On integration day, M6 removes every xfail mark and the tests must pass.
+Integration day done (2026-11-12): every xfail mark is removed and all tests must pass.
 """
 from pathlib import Path
 
@@ -40,7 +39,6 @@ def test_page_shell_renders() -> None:
     assert "How a swap works" in [e.label for e in at.expander]
 
 
-@pytest.mark.xfail(reason="awaiting M1 engine + M4 summary", strict=False)
 def test_defaults_show_a_hero_verdict() -> None:
     at = run_app()
     assert not at.exception
@@ -49,7 +47,6 @@ def test_defaults_show_a_hero_verdict() -> None:
     assert hero_label(at) == "You receive"
 
 
-@pytest.mark.xfail(reason="awaiting M1 engine + M3 position control + M4 summary", strict=False)
 def test_switching_position_flips_the_hero() -> None:
     at = run_app()
     before = hero_label(at)
@@ -64,7 +61,6 @@ def test_switching_position_flips_the_hero() -> None:
     assert {before, after} == {"You receive", "You pay"}
 
 
-@pytest.mark.xfail(reason="awaiting M3 validation", strict=False)
 def test_invalid_rate_stops_rendering(monkeypatch: pytest.MonkeyPatch) -> None:
     # A 40% rate is outside the spec §8 range (-5% to 30%).
     monkeypatch.setattr(ui.rates_editor, "render_rate_editor", lambda n: [0.40] * n)
@@ -75,8 +71,42 @@ def test_invalid_rate_stops_rendering(monkeypatch: pytest.MonkeyPatch) -> None:
     assert not at.download_button
 
 
-@pytest.mark.xfail(reason="awaiting M4 cash-flow table", strict=False)
 def test_csv_download_button_is_present() -> None:
     at = run_app()
     assert not at.exception
     assert len(at.download_button) == 1
+
+
+def test_walkthrough_shows_formulas_on_the_page() -> None:
+    at = run_app()
+    assert not at.exception
+    assert "Show the maths, step by step" in [e.label for e in at.expander]
+    assert len(at.latex) == 5
+
+
+def test_deselecting_the_preset_does_not_crash() -> None:
+    at = run_app()
+    at.segmented_control(key="preset").set_value(None).run()
+    assert not at.exception
+    assert hero_label(at) is not None
+
+
+def test_assignment_brief_sample(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Brief: 10M, 8% fixed, 1y quarterly, floating 6.5/7/9/8.5% -> fixed payer pays 25,000."""
+    monkeypatch.setattr(
+        ui.rates_editor, "render_rate_editor", lambda n: [0.065, 0.07, 0.09, 0.085]
+    )
+    at = AppTest.from_file(APP_PATH, default_timeout=30)
+    at.session_state["notional"] = 10_000_000.0
+    at.session_state["fixed_rate"] = 8.0
+    at.session_state["tenor_years"] = 1
+    at.session_state["payments_per_year"] = 4
+    at.run()
+    assert not at.exception
+    assert hero_label(at) == "You pay"
+    assert "−$25,000" in page_text(at)
+    assert "Party A pays Party B $37,500.00" in page_text(at)
+
+    at.segmented_control(key="position").set_value(Position.RECEIVE_FIXED).run()
+    assert hero_label(at) == "You receive"
+    assert "+$25,000" in page_text(at)

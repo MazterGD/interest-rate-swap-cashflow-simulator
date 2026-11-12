@@ -12,7 +12,6 @@ from swap.validation import validate_inputs, validate_rates
 pytestmark = pytest.mark.integration
 
 
-@pytest.mark.xfail(reason="awaiting M2/M3/M4", strict=False)
 def test_pipeline_worked_example() -> None:
     inputs = SwapInputs(1_000_000, 0.04, 2, 2, Position.PAY_FIXED)
     rates = [0.035, 0.04, 0.045, 0.05]
@@ -39,7 +38,6 @@ def test_pipeline_position_flip_negates_total() -> None:
     assert receive_summary.total_net == pytest.approx(-pay_summary.total_net)
 
 
-@pytest.mark.xfail(reason="awaiting M2/M3/M4", strict=False)
 @pytest.mark.parametrize("preset", list(RatePreset))
 @pytest.mark.parametrize("payments_per_year", [1, 2, 4])
 def test_pipeline_totals_are_consistent(
@@ -56,7 +54,6 @@ def test_pipeline_totals_are_consistent(
     assert cash_flows[-1].cumulative_net == pytest.approx(summary.total_net)
 
 
-@pytest.mark.xfail(reason="awaiting M3", strict=False)
 def test_pipeline_rejects_invalid_rates_before_engine() -> None:
     inputs = SwapInputs(1_000_000, 0.04, 1, 2, Position.PAY_FIXED)
     rates = [0.04, 0.40]
@@ -65,3 +62,19 @@ def test_pipeline_rejects_invalid_rates_before_engine() -> None:
 
     assert errors
     assert "Period 2" in errors[0]
+
+def test_pipeline_assignment_brief_sample() -> None:
+    """Brief table: Q1..Q4 nets +37,500 / +25,000 / -25,000 / -12,500 for the fixed receiver."""
+    inputs = SwapInputs(10_000_000, 0.08, 1, 4, Position.RECEIVE_FIXED)
+    rates = [0.065, 0.07, 0.09, 0.085]
+
+    assert validate_inputs(inputs) == [] and validate_rates(rates, 4) == []
+    cash_flows = simulate_swap(inputs, rates)
+    exported = pd.read_csv(io.BytesIO(to_csv_bytes(cash_flows_to_dataframe(cash_flows))))
+
+    assert [f.fixed_payment for f in cash_flows] == pytest.approx([200_000] * 4)
+    assert [f.floating_payment for f in cash_flows] == pytest.approx(
+        [162_500, 175_000, 225_000, 212_500]
+    )
+    assert list(exported["Net settlement"]) == pytest.approx([37_500, 25_000, -25_000, -12_500])
+    assert summarize(cash_flows).total_net == pytest.approx(25_000)

@@ -46,15 +46,14 @@ Formulas: `fixed = N × K × α`, `floating = N × Lᵢ × α`, and `net = float
 - Pick a floating-rate path (**Flat / Rising / Falling / Volatile**) and edit any single period.
 - See the **total net settlement** first, then a chart of rates and net payments, then the full cash-flow table.
 - Download the table as CSV.
-- Open a short "How a swap works" explainer.
+- Learn as you go: **"Show the maths, step by step"** plugs your numbers into each formula for any period and says in plain English who pays whom (Party A = fixed payer, Party B = floating payer). Every input has a tooltip, and "How a swap works" lists the symbols and formulas.
+- A third chart panel shows the **cumulative net** settlement.
 
 Everything recalculates as soon as you change a value. There is no "Run" button.
 
 ## Running it
 
 Requirements: **Python 3.11+** (free). Nothing else to install beyond the two pip packages. Tested with Python 3.11 (CI) and 3.13 using Streamlit 1.67.
-
-> Until every workstream merges, parts of the page show "— TODO" placeholders. That is expected (see [WORK_PLAN.md](WORK_PLAN.md#kickoff-step-0--member-6-about-45-minutes-before-anyone-branches)).
 
 ```bash
 python -m venv .venv
@@ -125,6 +124,7 @@ Every decision made during planning: the question, the options, what was chosen 
 | D4 | Which extra outputs? | Chart · Payer/receiver toggle · CSV download · Explainer panel | **All four** | Each one helps the user understand or reuse the result, and each is small. | Spec §2, §9 · remove or add the matching render call in `app.py` and the owner's file | M4 (CSV), M5 (chart), M3 (toggle), M6 (explainer) |
 | D5 | What deliverables beyond code? | Written report · Presentation / demo · **Code only** | **Code only** | The repo holds only software. No report or slides workstreams are planned here. | Add workstreams to WORK_PLAN.md if this changes | All |
 | D6 | Team's Python comfort? | Mixed · **All comfortable** · Mostly beginners | **All comfortable** | The work is split evenly by feature, not by difficulty. | Rebalance the WORK_PLAN.md workstreams | All |
+| D8 | Should the app teach, not just calculate? *(added 2026-11-12, after the brief review)* | (a) keep the calculator as specced · (b) **add learning aids: step-by-step formula walkthrough, Party A/B wording, tooltips, cumulative-net chart, longer explainer** | **(b)** | The brief asks the demo to show *who pays whom and why* to someone new to swaps, and lists a cumulative-net chart. The walkthrough reads engine output only, so the maths stays in `swap/`. | Spec §2, §9.4–§9.6, §10 · `ui/walkthrough.py`, `ui/chart.py`, `ui/explainer.py`, `ui/inputs.py`, `ui/rates_editor.py`, `app.py` | M2, M3, M5, M6 |
 | D7 | Should tests run automatically? *(added after the first plan)* | (a) local `pytest` by convention only · (b) **unit + integration tests, run by GitHub Actions on every PR** · (c) another CI service | **(b) GitHub Actions on every PR** | Six people merge into one `main`, and a broken `main` blocks everyone. GitHub Actions is free and needs no new account. | Spec §10, §12 · [ADR-003](.10x/adrs/003-ci-pytest-on-pull-requests.md) · `.github/workflows/tests.yml`, `pyproject.toml` · WORK_PLAN ground rule 7 + Git workflow | M6 (CI), M1 (pipeline tests), all (unit tests) |
 
 ### Requirements given up front (from the project brief)
@@ -159,7 +159,7 @@ Every decision made during planning: the question, the options, what was chosen 
 | P17 | CI details: one job, Ubuntu, Python 3.11 only, `pytest -q`, read-only permissions, triggered on PR and push to `main` | Python version matrix; lint job; caching beyond pip | Fast, free and enough. 3.11 is the lowest supported version. | Spec §12 · `.github/workflows/tests.yml` | M6 |
 | P18 | Integration tests that need unmerged code are `xfail(strict=False)` until integration day | Write integration tests only at the end | Tests exist early and CI stays green during parallel work | Spec §10.2 · WORK_PLAN Integration day | M1, M6 |
 | P19 | Merge gate: green CI + 1 approval, enforced with branch protection on `main` | No gate | Keeps `main` runnable for all six members | Spec §12 · GitHub repo settings | Repo owner |
-| P14 | UI: centred layout, no Run button, greyscale + one accent blue, green/red only for receive/pay, ≤ 3 icons, no dividers | Sidebar inputs; dashboard grid | Guides the eye from terms to rates to the answer to the reason, without distraction | Spec §9 · `.streamlit/config.toml`, `ui/` | M2–M6 |
+| P14 | UI: centred layout, no Run button, greyscale + one accent blue, green/red only for receive/pay (grey for zero), ≤ 3 icons, no dividers, help tooltips on every input (D8) | Sidebar inputs; dashboard grid | Guides the eye from terms to rates to the answer to the reason, without distraction | Spec §9 · `.streamlit/config.toml`, `ui/` | M2–M6 |
 | P15 | Currency shown as `$` | Currency selector; no symbol | Simple and recognisable | `ui/formatting.py` | M4 |
 | P16 | Git: one branch per member, PR + one reviewer, `main` always runnable | Trunk-based with no reviews | Light process, but catches spec mismatches | WORK_PLAN.md | All |
 

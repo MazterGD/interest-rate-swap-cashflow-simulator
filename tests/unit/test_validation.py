@@ -132,8 +132,9 @@ def test_input_widgets_defaults_bounds_and_labels() -> None:
         assert widget.min == minimum
         assert widget.max == maximum
         assert widget.step == step
-        assert bool(widget.help) == (key == "notional")
+        assert widget.help  # every term explains itself (spec §9.6 learning aids)
     assert at.segmented_control(key="position").options == ["Pay fixed", "Receive fixed"]
+    assert "Party A" in at.segmented_control(key="position").help
     assert at.segmented_control(key="payments_per_year").options == [
         "Annual", "Semi-annual", "Quarterly"
     ]
