@@ -5,6 +5,7 @@ NEGATIVE = "#CF222E"    # you pay
 MUTED = "#656D76"       # secondary text, axes
 FIXED_LINE = "#8C959F"  # dashed fixed-rate line
 ACCENT = "#2F5BEA"      # controls, floating-rate line
+TEXT = "#1F2328"        # body text, cumulative-net line (matches config.toml textColor)
 
 
 def fmt_money(x: float) -> str:

@@ -31,13 +31,13 @@ FIXED_RATE = 0.04
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
-def test_chart_has_two_subcharts():
-    """build_settlement_chart returns a vconcat with exactly 2 sub-charts."""
+def test_chart_has_three_subcharts():
+    """build_settlement_chart returns a vconcat: rates, net bars, cumulative net."""
     cash_flows = make_cashflows(WORKED_EXAMPLE_NETS)
     chart = build_settlement_chart(cash_flows, FIXED_RATE)
     d = chart.to_dict()
     assert "vconcat" in d, "Top-level chart must be a vconcat"
-    assert len(d["vconcat"]) == 2, "Must have exactly 2 sub-charts (rate lines + net bars)"
+    assert len(d["vconcat"]) == 3, "Must have 3 sub-charts (rates, net bars, cumulative)"
 
 
 def test_chart_has_colour_condition_on_net():
@@ -90,3 +90,30 @@ def test_positive_and_negative_nets_in_data():
     assert "-2500" in chart_str or "-2500.0" in chart_str, "Negative net must appear in chart data"
     assert "5000" in chart_str or "5000.0" in chart_str, "Positive net must appear in chart data"
 
+
+
+def _layers(d: dict, panel: int) -> list[dict]:
+    return d["vconcat"][panel]["layer"]
+
+
+def test_zero_net_bar_is_neutral_not_red():
+    """Green only for receive, red only for pay; a zero period is MUTED (spec §9.2)."""
+    from ui.formatting import MUTED, NEGATIVE, POSITIVE
+
+    d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE).to_dict()
+    colour = _layers(d, 1)[0]["encoding"]["color"]
+    assert colour["value"] == MUTED
+    tests = {c["test"]: c["value"] for c in colour["condition"]}
+    assert tests == {"datum.Net > 0": POSITIVE, "datum.Net < 0": NEGATIVE}
+
+
+def test_cumulative_panel_plots_running_total():
+    d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE).to_dict()
+    assert d["vconcat"][2]["height"] == 140
+    assert _layers(d, 2)[0]["encoding"]["y"]["field"] == "Cumulative"
+
+
+def test_rate_tooltip_compares_fixed_and_floating_payments():
+    d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE).to_dict()
+    fields = {t["field"] for t in _layers(d, 0)[0]["encoding"]["tooltip"]}
+    assert {"Fixed Payment", "Floating Payment"} <= fields

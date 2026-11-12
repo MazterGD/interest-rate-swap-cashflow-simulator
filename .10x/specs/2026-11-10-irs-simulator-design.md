@@ -27,9 +27,10 @@ It also shows totals, a chart, and a CSV export.
 3. Floating-rate path from a preset (Flat, Rising, Falling, Volatile) plus a start rate. Any single period's rate can then be edited.
 4. Per-period cash-flow table: period, time, floating rate, fixed payment, floating payment, net settlement, cumulative net.
 5. Summary: total net settlement (headline), total fixed, total floating, and a one-line plain-English verdict.
-6. Charts: rate path (floating vs fixed) stacked above net settlement bars (green = receive, red = pay).
+6. Charts: rate path (floating vs fixed, tooltip shows both payments) stacked above net settlement bars (green = receive, red = pay, grey = zero) and a cumulative-net line. *(Cumulative panel added 2026-11-12, D8.)*
 7. CSV download of the cash-flow table.
-8. Collapsible "How a swap works" explainer.
+8. Collapsible "How a swap works" explainer with symbols, formulas and who-pays-whom (Party A = fixed payer, Party B = floating payer).
+9. **Learning aids** *(added 2026-11-12, D8)*: a "Show the maths, step by step" walkthrough that plugs the user's numbers into the §3 formulas for any chosen period, and a `help=` tooltip on every input (§9.6).
 
 ### Explicitly out of scope (YAGNI)
 Day-count conventions, business-day calendars and real dates, discounting / PV / mark-to-market, amortising notionals, floating spreads, compounding (SOFR in arrears), multiple currencies, saving or loading scenarios, user accounts, databases, deployment. (CI *is* in scope, but only to run tests on PRs. See §12.)
@@ -109,6 +110,7 @@ ui/                     # streamlit render functions, one concern per file
   results.py            # render_summary, render_cash_flow_table
   chart.py              # build_settlement_chart, render_settlement_chart
   explainer.py          # render_explainer
+  walkthrough.py        # render_walkthrough, build_steps, settlement_sentence (§9.6)
   formatting.py         # fmt_money, fmt_rate, fmt_signed_money (shared helpers)
 .streamlit/config.toml  # theme tokens
 pyproject.toml          # pytest config only (testpaths, markers) — no packaging
@@ -129,7 +131,7 @@ render_rate_editor(n) ─► rates ─────┘
                                     ▼
                          summarize(cash_flows) ─► SwapSummary
                                     ▼
-   render_summary ─► render_settlement_chart ─► render_cash_flow_table (+CSV) ─► render_explainer
+   render_summary ─► render_settlement_chart ─► render_walkthrough ─► render_cash_flow_table (+CSV) ─► render_explainer
 ```
 
 **Error handling:** widgets prevent most bad input (min/max on number inputs, fixed option lists). `validate_*` is the single guard before the engine runs. The engine raises `ValueError` only on programmer errors, such as a rate-list length mismatch. The UI shows validation messages with `st.warning` and calls `st.stop()`, so nothing below renders with bad data.
@@ -217,6 +219,7 @@ All rates are **decimals** inside the code. Only the UI converts to and from per
 | `ui/chart.py` | `build_settlement_chart(cash_flows: list[PeriodCashFlow], fixed_rate: float) -> alt.Chart` | Pure builder, testable without Streamlit. |
 | `ui/chart.py` | `render_settlement_chart(cash_flows, fixed_rate) -> None` | Calls `st.altair_chart` at full container width (use whichever width argument the installed Streamlit version documents). |
 | `ui/explainer.py` | `render_explainer() -> None` | One collapsed expander. |
+| `ui/walkthrough.py` | `render_walkthrough(cash_flows: list[PeriodCashFlow], inputs: SwapInputs) -> None`; pure helpers `build_steps(flow, inputs) -> list[Step]`, `settlement_sentence(flow, inputs) -> str` | Reads engine output only; never recalculates. Added 2026-11-12 (D8); not part of the original frozen set. |
 
 ## 7. Rate scenarios
 
@@ -309,13 +312,22 @@ Colours used in code (keep them in `ui/formatting.py` as constants): `POSITIVE =
 
 ### 9.4 Chart spec (Altair, `vconcat`, shared x = Period)
 - **Top (height ~140):** floating rate as a solid `ACCENT` line with points. Fixed rate as a dashed `FIXED_LINE` horizontal rule. Y axis in %. No gridlines except light horizontal ones.
-- **Bottom (height ~220):** net settlement bars, coloured `POSITIVE` if > 0 and `NEGATIVE` if < 0. A zero baseline rule. Tooltip shows Period, Floating rate, Net settlement.
+- **Top tooltip:** Period, floating and fixed rate, floating and fixed payment. This is the fixed-vs-floating payment comparison: payments are `N × rate × α`, so they scale with the lines.
+- **Middle (height ~220):** net settlement bars, coloured `POSITIVE` if > 0, `NEGATIVE` if < 0 and `MUTED` if 0. A zero baseline rule. Tooltip shows Period, Floating rate, Net settlement.
+- **Bottom (height ~140, added 2026-11-12):** cumulative net as a `TEXT`-coloured (greyscale) line with points and a zero rule.
+- A one-line `st.caption` above the chart explains how to read the three panels.
 - No chart titles inside the chart (the page already gives context). Small axis labels in `MUTED`. Legends are hidden because the colours are explained by the hero and the sign.
 
 ### 9.5 Copy
 - Verdict template: `"over {T} years · floating averaged {avg} vs {K} fixed"`.
 - Hero label: `"You receive"` if total > 0, `"You pay"` if < 0, `"You break even"` if 0.
-- Explainer: ≤ 120 words covering what an IRS is, why firms use one (hedging, matching assets to liabilities), that only the net amount is exchanged, and what pay-fixed vs receive-fixed means. Use the §3 worked example as the illustration.
+- Explainer: ≤ 200 words *(was 120; raised 2026-11-12, D8)* covering a symbol table (N, K, Lᵢ, α), the two payment formulas, who pays whom in Party A / Party B terms, what an IRS is, why firms use one (hedging, matching assets to liabilities), that only the net amount is exchanged, and what pay-fixed vs receive-fixed means. Use the §3 worked example as the illustration.
+
+### 9.6 Learning aids (added 2026-11-12, D8)
+- **Walkthrough:** `render_walkthrough` sits between the chart and the table in an expander "Show the maths, step by step" (open by default, no icon, so the 3-icon cap holds). A `st.select_slider` picks the period (hidden for a 1-period swap). Five steps, each a bold title + one plain sentence + `st.latex`: (1) `α = 1/f`, (2) `P_fixed = N × K × α`, (3) `P_float = N × Lᵢ × α`, (4) net in the user's view, (5) cumulative total, all with the user's numbers substituted.
+- **Who pays whom:** below the steps, one sentence in Party A (fixed payer) / Party B (floating payer) terms, e.g. "Floating (6.50%) is below fixed (8.00%), so Party A pays Party B $37,500.00. You are Party B, so you receive +$37,500." A left border in `POSITIVE`/`NEGATIVE`/`MUTED` matches the sign (never colour alone). A muted rule-of-thumb caption follows.
+- **Tooltips:** every swap-term input, the preset, the start rate and the editable rate column carry a short `help=` naming its symbol (N, K, T, f) where one exists. The Position help maps Pay fixed → Party A and Receive fixed → Party B.
+- **Settlement direction:** some course material says "P_fixed − P_floating > 0 means Party B pays Party A". That is reversed: if the fixed leg is larger, the fixed payer (A) owes the difference. The app follows §3.
 
 ## 10. Testing strategy
 
@@ -329,7 +341,8 @@ There are two layers, both run by plain `pytest` locally and in CI (§12). Integ
 | `test_scenarios.py` | M2 | Each preset's shape, length, determinism (same seed gives the same path), floor at 0, `num_periods=1` |
 | `test_validation.py` | M3 | Each limit at boundary, just inside and just outside. The message names the period. Defaults are valid. |
 | `test_export.py`, `test_formatting.py` | M4 | Column order, rates ×100, CSV round-trip, rounding, sign formatting including the zero case |
-| `test_chart.py` | M5 | `build_settlement_chart(...).to_dict()` has 2 sub-charts and the colour condition. Empty input and 120 periods do not crash. |
+| `test_chart.py` | M5 | `build_settlement_chart(...).to_dict()` has 3 sub-charts, the colour condition (grey for zero), payment tooltips and the cumulative panel. Empty input and 120 periods do not crash. |
+| `test_walkthrough.py` | M6 | Formulas show the user's numbers (brief sample), receive-fixed net formula, who-pays-whom sentence for both positions and zero, period picker and the 1-period case. |
 
 ### 10.2 Integration tests (`tests/integration/`): several real modules working together
 

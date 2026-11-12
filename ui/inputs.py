@@ -16,7 +16,7 @@ def render_swap_inputs() -> SwapInputs:
             step=100_000.0,
             format="%.0f",
             key="notional",
-            help="The amount used to calculate interest payments. It is never exchanged.",
+            help="N: the amount used to calculate interest payments. It is never exchanged.",
         )
     with right:
         fixed_rate_percent = st.number_input(
@@ -27,6 +27,7 @@ def render_swap_inputs() -> SwapInputs:
             step=0.05,
             format="%.2f",
             key="fixed_rate",
+            help="K: the annual rate the fixed payer (Party A) pays every period. It never changes.",
         )
 
     left, right = st.columns(2)
@@ -34,6 +35,7 @@ def render_swap_inputs() -> SwapInputs:
         tenor_years = st.number_input(
             "Tenor (years)", min_value=1, max_value=30, value=5,
             step=1, key="tenor_years",
+            help="T: how many years the swap runs. Number of periods n = T × payments per year.",
         )
     with right:
         frequency_labels = {1: "Annual", 2: "Semi-annual", 4: "Quarterly"}
@@ -43,6 +45,7 @@ def render_swap_inputs() -> SwapInputs:
             default=2,
             format_func=lambda frequency: frequency_labels[frequency],
             key="payments_per_year",
+            help="f: payments per year. Each period covers α = 1/f of a year (quarterly → 0.25).",
         )
 
     position_labels = {
@@ -55,6 +58,10 @@ def render_swap_inputs() -> SwapInputs:
         default=Position.PAY_FIXED,
         format_func=lambda selected: position_labels[selected],
         key="position",
+        help=(
+            "Pay fixed = you are Party A: you pay fixed and receive floating. "
+            "Receive fixed = you are Party B: you receive fixed and pay floating."
+        ),
     )
     # Segmented controls can be deselected; keep the returned terms usable.
     return SwapInputs(

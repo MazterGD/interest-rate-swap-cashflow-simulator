@@ -12,9 +12,9 @@ def _render() -> None:
     render_explainer()
 
 
-def test_explainer_is_at_most_120_words() -> None:
+def test_explainer_is_at_most_200_words() -> None:
     words = re.findall(r"[\w,.%]+", EXPLAINER_TEXT.replace("*", ""))
-    assert len(words) <= 120
+    assert len(words) <= 200
 
 
 def test_explainer_uses_the_worked_example() -> None:
@@ -29,3 +29,8 @@ def test_renders_one_collapsed_expander() -> None:
     assert [e.label for e in at.expander] == [EXPLAINER_LABEL]
     assert at.expander[0].proto.expanded is False
     assert at.expander[0].markdown[0].value.strip() == EXPLAINER_TEXT.strip()
+
+
+def test_explainer_teaches_formulas_and_direction() -> None:
+    for phrase in ("N × K × α", "N × Lᵢ × α", "Party A", "Party B", "Party B pays Party A"):
+        assert phrase in EXPLAINER_TEXT

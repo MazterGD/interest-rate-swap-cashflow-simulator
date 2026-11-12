@@ -52,3 +52,19 @@ When a PR merges, its author appends a short section:
 - **Deviations:** retained the user's existing member branch `M3-mok`; isolated widget tests share M3's owned test file. No dependency or frozen-contract changes. Static type checking was not run: no checker is configured/installed and the project forbids new dependencies.
 - **Remaining:** push/open the M3 PR when requested, obtain a green GitHub Actions run and teammate approval. Local verification does not certify remote CI or branch protection. Whole-app financial demo checks await the other members' implementations.
 - **Tech debt:** none introduced.
+
+## Brief review fixes + D8 learning aids (`patch-1`, 2026-11-12)
+Cross-workstream edit, agreed by the team; each owner should review their file in the PR.
+- **Fixed:**
+  - M2 `ui/rates_editor.py`: clicking the selected preset again returned `None` and crashed on `preset.value`. It now falls back to Rising. Added the missing spec §9.1 "Floating rates" subheader and stable keys (`preset`, `start_rate`).
+  - M5 `ui/chart.py`: a zero net bar was red. It is now `MUTED` (spec §9.2).
+  - M1/M6: removed every `xfail` from `tests/integration/` (integration day step 1). No xfail or xpass remains.
+- **Built (D8):**
+  - `ui/walkthrough.py` (M6): "Show the maths, step by step". Pure `build_steps` / `settlement_sentence` plus a thin `render_walkthrough`. A period slider, five `st.latex` steps with the user's numbers, and a who-pays-whom sentence in Party A/B terms. Reads engine output only.
+  - `ui/chart.py` (M5): a third panel for cumulative net; the rate tooltip shows fixed and floating payments; a one-line reading guide caption.
+  - `ui/explainer.py` (M6): symbol table, formulas, Party A/B direction; cap raised to 200 words.
+  - `ui/inputs.py` (M3) and `ui/rates_editor.py` (M2): `help=` on every input. `TEXT` colour token added to `ui/formatting.py` (M4).
+- **Tests:** `tests/unit/test_walkthrough.py` (new), plus updates to test_chart, test_explainer, test_validation and test_scenarios. The integration tests gain the brief sample end to end (pipeline + AppTest), the walkthrough on the page, and preset deselect. `pytest`: **153 passed**.
+- **Deviations:** spec §2/§9.4/§9.5/§10 updated and new §9.6 added; README D8; WORK_PLAN ownership and checklists updated. Position labels are unchanged ("Pay fixed"/"Receive fixed"); the Party mapping lives in help text and the walkthrough.
+- **Not verified:** a live browser run (only AppTest), GitHub CI on the PR, and branch protection on `main` (`gh` is not authenticated).
+- **Tech debt:** none.

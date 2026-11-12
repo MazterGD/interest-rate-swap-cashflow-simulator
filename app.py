@@ -11,6 +11,7 @@ from ui.explainer import render_explainer
 from ui.inputs import render_swap_inputs
 from ui.rates_editor import render_rate_editor
 from ui.results import render_cash_flow_table, render_summary
+from ui.walkthrough import render_walkthrough
 
 st.set_page_config(page_title="IRS Simulator", layout="centered")
 st.title("Interest-Rate Swap Simulator")
@@ -30,5 +31,6 @@ summary = summarize(cash_flows)
 
 render_summary(summary, inputs)
 render_settlement_chart(cash_flows, inputs.fixed_rate)
+render_walkthrough(cash_flows, inputs)
 render_cash_flow_table(cash_flows)
 render_explainer()
