@@ -169,3 +169,11 @@ def test_fixed_rate_widget_boundaries_convert_to_decimals(rate_percent: float) -
     at.number_input(key="fixed_rate").set_value(rate_percent).run()
     assert not at.exception
     assert at.session_state["result"].fixed_rate == pytest.approx(rate_percent / 100)
+
+
+def test_notional_shows_a_grouped_readout() -> None:
+    """st.number_input cannot group digits, so the amount is confirmed underneath."""
+    at = AppTest.from_function(_render_inputs).run()
+    assert "$1,000,000" in at.caption[0].value
+    at.number_input(key="notional").set_value(10_000_000.0).run()
+    assert "$10,000,000" in at.caption[0].value

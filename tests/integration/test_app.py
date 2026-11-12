@@ -2,6 +2,7 @@
 
 Integration day done (2026-11-12): every xfail mark is removed and all tests must pass.
 """
+import re
 from pathlib import Path
 
 import pytest
@@ -27,9 +28,13 @@ def page_text(at: AppTest) -> str:
 
 
 def hero_label(at: AppTest) -> str | None:
-    text = page_text(at)
-    found = [label for label in HERO_LABELS if label in text]
-    return found[0] if found else None
+    """The label inside the hero card only (other copy, e.g. chart keys, may reuse the words)."""
+    for element in at.markdown:
+        match = re.search(r'class="irs-hero__label">([^<]+)<', str(element.value))
+        if match:
+            label = match.group(1)
+            return label if label in HERO_LABELS else None
+    return None
 
 
 def test_page_shell_renders() -> None:
@@ -110,3 +115,10 @@ def test_assignment_brief_sample(monkeypatch: pytest.MonkeyPatch) -> None:
     at.segmented_control(key="position").set_value(Position.RECEIVE_FIXED).run()
     assert hero_label(at) == "You receive"
     assert "+$25,000" in page_text(at)
+
+
+def test_header_is_title_then_lede() -> None:
+    at = run_app()
+    assert not at.exception
+    assert at.title[0].value == "Interest-Rate Swap Simulator"
+    assert any('class="irs-lede"' in str(m.value) for m in at.markdown)

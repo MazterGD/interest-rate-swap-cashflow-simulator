@@ -27,6 +27,8 @@
 | App shell, theme, explainer, app integration tests, README Running | M6 | ☑ (merged; walkthrough added 2026-11-12) |
 | Integration day: remove `xfail`s + demo checklist | All | ◐ xfails removed, 153 tests pass (2026-11-12); team still has to walk through the demo checklist live |
 | D8 learning aids: walkthrough, tooltips, cumulative chart, explainer | M2/M3/M5/M6 (team-agreed cross-edit) | ☑ on `patch-1` (2026-11-12); needs PR + review |
+| D9 interactive UI + visual refresh: flow diagram, chart click → walkthrough, insight chips, theme | M2–M6 (team-agreed cross-edit) | ☑ on `patch-1` (2026-11-12); needs PR + review |
+| D10 full-width asymmetric layout (rail + canvas, one page scroll after the UI review); scenarios removed | M3/M4/M6 (team-agreed cross-edit) | ☑ on `patch-1` (2026-11-12); needs PR + review |
 | QA and security reviews in `.10x/reviews/` | QA / Security | ☐ |
 
 When you finish a task, tick it here in your PR, and add your section to `decisions/sde/irs-simulator.md`.

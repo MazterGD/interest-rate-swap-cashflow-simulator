@@ -68,3 +68,54 @@ Cross-workstream edit, agreed by the team; each owner should review their file i
 - **Deviations:** spec §2/§9.4/§9.5/§10 updated and new §9.6 added; README D8; WORK_PLAN ownership and checklists updated. Position labels are unchanged ("Pay fixed"/"Receive fixed"); the Party mapping lives in help text and the walkthrough.
 - **Not verified:** a live browser run (only AppTest), GitHub CI on the PR, and branch protection on `main` (`gh` is not authenticated).
 - **Tech debt:** none.
+
+## D9 interactive UI + visual refresh (`patch-1`, 2026-11-12)
+Cross-workstream edit, agreed by the team (same terms as D8).
+- **Built:**
+  - `ui/theme.py` and `.streamlit/config.toml`: theme tokens and CSS that targets only the `st-key-*` and `irs-*` classes. `ui/formatting.py` gets the leg colours (FIXED amber, FLOATING teal) and tint tokens.
+  - `ui/quick_scenarios.py`: four scenario buttons. `ui/rates_editor.py` gains `RATE_OVERRIDE_KEY` for the example's custom rates.
+  - `ui/flow_diagram.py`: the Party A ⇄ B SVG. `ui/walkthrough.py` now shows the diagram and colours P_fixed and P_float.
+  - `ui/results.py`: tinted hero card and `render_insights` chips; the table expander is renamed "Payment schedule" and collapsed.
+  - `ui/chart.py`: `build_panels`; three separate fitted charts; shared tooltip band, hover tint, click → `walkthrough_period`.
+  - `ui/inputs.py` and `ui/rates_editor.py`: defaults are seeded with `session_state.setdefault` instead of `value=`/`default=`, so scenarios can set widget keys without Streamlit's "default value + Session State" warning.
+- **Verified:** `pytest` gives 167 passed. Headless Edge screenshots (desktop 900px and mobile 390px) of the default, assignment-example, rising and choppy scenarios. The impeccable detector found nothing.
+- **Deviations:**
+  - The chart renders as three charts, not one vconcat. A vconcat cannot fit its axes inside the column; `build_settlement_chart` still returns the vconcat for the §6.2 contract and tests.
+  - Panel heights are 180/250/180 because fitted heights include the axes.
+- **Known limits:** hover tints only the panel under the pointer (separate charts); the selected-period tint shows in all three. The diagram scrolls sideways on phones under 520px. Streamlit's file watcher did not hot-reload edited modules during testing; restart `streamlit run` after pulling.
+- **Tech debt:** none.
+
+## D10 full-width asymmetric layout (`patch-1`, 2026-11-12)
+- **Removed:** `ui/quick_scenarios.py`, its tests and the rate-override plumbing in `ui/rates_editor.py`. The presets cover the same cases, and the brief's example is entered through "Edit individual periods". The `session_state.setdefault` default seeding stays.
+- **Built:**
+  - `app.py`: wide layout; one `GRID = [2, 3]` split for the header and the body; rail (inputs card, rates card, explainer) and canvas (results).
+  - `ui/theme.py`: content capped at 1760 px with fluid gutters, a sticky rail ≥ 1024 px, the hero as an internal 1.5fr / 1fr grid, a fluid title and hero sizes, and the diagram capped at 780 px.
+  - `ui/inputs.py`: rail-friendly stacking (Notional; Fixed rate | Tenor; Frequency; Position).
+  - `ui/walkthrough.py`: full-width diagram, then the steps.
+  - `ui/chart.py`: "Cash flows over time" subheader.
+- **Verified:** `pytest` gives 163 passed (the 4 scenario tests were removed with the feature). Headless Edge screenshots at 1920, 1280 and 390 px: no clipping or overflow. The impeccable detector found nothing.
+- **Known limits:** the sticky rail only shows in a live browser; full-page screenshots show the space below it as empty.
+- **Follow-up (same day):**
+  - The header uses its own 3 : 2 split, so the title stays on one line at full size (`nowrap` ≥ 1024 px); top padding is 1.25rem.
+  - The payment schedule moved into the canvas; the walkthrough is now the last section at full page width, with the diagram (sticky) beside the formula steps.
+  - Frequency stays on its own full-width rail row.
+  - Verified at 1536 px (1920 at 125 % scaling), 1280 px and 390 px.
+
+## UI review fixes (`patch-1`, 2026-11-12)
+- **Found** (from the user's screenshots at 1536 × 730 CSS px, i.e. 1920 × 1080 at 125 %):
+  1. The sticky rail had its own scrollbar (`max-height` + `overflow-y: auto`). It trapped the scroll, clipped its bottom and left empty space below it.
+  2. The lede sat in a separate right-hand header column, aligned with nothing.
+  3. A three-line paragraph explained the chart colours far from the marks; the shaded column was never explained.
+  4. The notional showed as `1000000`.
+  5. The diagram in "Show the maths" was also sticky.
+- **Fixed:**
+  - One page scroll: the sticky rules and inner scroll are removed, and the diagram note moved out of the scrolling box. `tests/unit/test_theme.py` guards against `position: sticky`/`fixed`, `overflow-y: auto` and `max-height` coming back.
+  - The lede sits under the title on the same edge.
+  - Each chart panel has a heading with its unit and an inline colour key, there is one hint line, and the rotated y-axis titles are gone.
+  - The walkthrough's period is shaded from the first load.
+  - The notional readout is grouped tightly with its field.
+- **Streamlit gotcha:** markdown blocks get `margin-bottom: -1rem` (it cancels a closing `<p>`'s margin). An HTML block that ends in a `<div>` must add `margin-bottom: 1rem`, or the next element paints over it; this is what clipped the panel headings. Our `p.irs-*` rules use `.stApp p.irs-…` to outrank Streamlit's `.st-emotion-… p` margins.
+- **Verified:**
+  - Headless Edge at 1536 × 730 (first screen + full page), 1280 and 390 px. A DOM probe reports no inner vertical scroller except Streamlit's page scroller (`stMain`).
+  - `pytest` gives 169 passed. The layout-scope detector found nothing.
+- **Known limit:** the rail is shorter than the results column, so on long result pages the space under it is empty. This is deliberate; the alternative was the sticky rail, which was removed.

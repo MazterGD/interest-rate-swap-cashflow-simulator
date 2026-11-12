@@ -31,7 +31,10 @@ def test_receive_fixed_net_formula_is_fixed_minus_floating() -> None:
     inputs = brief_inputs(Position.RECEIVE_FIXED)
     flow = simulate_swap(inputs, BRIEF_RATES)[1]
     net_step = build_steps(flow, inputs)[3]
-    assert r"P_{\text{fixed}} - P_{\text{float}}" in net_step.latex
+    from ui.walkthrough import P_FIXED, P_FLOAT
+
+    assert f"{P_FIXED} - {P_FLOAT}" in net_step.latex
+    assert "#B45309" in P_FIXED and "#0E7490" in P_FLOAT  # leg colours match chart + diagram
     assert net_step.latex.endswith(r"= \$25{,}000.00")
 
 

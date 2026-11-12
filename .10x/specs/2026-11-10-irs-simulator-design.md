@@ -31,6 +31,7 @@ It also shows totals, a chart, and a CSV export.
 7. CSV download of the cash-flow table.
 8. Collapsible "How a swap works" explainer with symbols, formulas and who-pays-whom (Party A = fixed payer, Party B = floating payer).
 9. **Learning aids** *(added 2026-11-12, D8)*: a "Show the maths, step by step" walkthrough that plugs the user's numbers into the §3 formulas for any chosen period, and a `help=` tooltip on every input (§9.6).
+10. **Interactive learning layer** *(added 2026-11-12, D9; one-click scenarios removed in D10 because the presets already cover them)*: a Party A ⇄ Party B flow diagram for the chosen period; clicking a chart period drives the walkthrough; insight chips (break-even fixed rate, periods in your favour, largest settlement); a themed visual refresh (§9.3, §9.7).
 
 ### Explicitly out of scope (YAGNI)
 Day-count conventions, business-day calendars and real dates, discounting / PV / mark-to-market, amortising notionals, floating spreads, compounding (SOFR in arrears), multiple currencies, saving or loading scenarios, user accounts, databases, deployment. (CI *is* in scope, but only to run tests on PRs. See §12.)
@@ -111,6 +112,8 @@ ui/                     # streamlit render functions, one concern per file
   chart.py              # build_settlement_chart, render_settlement_chart
   explainer.py          # render_explainer
   walkthrough.py        # render_walkthrough, build_steps, settlement_sentence (§9.6)
+  flow_diagram.py       # build_flow_svg, net_direction (§9.7)
+  theme.py              # apply_theme: page CSS on top of config.toml (§9.3)
   formatting.py         # fmt_money, fmt_rate, fmt_signed_money (shared helpers)
 .streamlit/config.toml  # theme tokens
 pyproject.toml          # pytest config only (testpaths, markers) — no packaging
@@ -131,7 +134,8 @@ render_rate_editor(n) ─► rates ─────┘
                                     ▼
                          summarize(cash_flows) ─► SwapSummary
                                     ▼
-   render_summary ─► render_settlement_chart ─► render_walkthrough ─► render_cash_flow_table (+CSV) ─► render_explainer
+   apply_theme ─► header row ─► rail: [inputs card] [rates card] render_explainer │ canvas: …
+   render_summary ─► render_insights ─► render_settlement_chart ─► render_walkthrough ─► render_cash_flow_table (+CSV) ─► render_explainer
 ```
 
 **Error handling:** widgets prevent most bad input (min/max on number inputs, fixed option lists). `validate_*` is the single guard before the engine runs. The engine raises `ValueError` only on programmer errors, such as a rate-list length mismatch. The UI shows validation messages with `st.warning` and calls `st.stop()`, so nothing below renders with bad data.
@@ -217,6 +221,8 @@ All rates are **decimals** inside the code. Only the UI converts to and from per
 | `ui/results.py` | `render_summary(summary: SwapSummary, inputs: SwapInputs) -> None` | Shows the headline metric, two secondary metrics and the verdict. |
 | `ui/results.py` | `render_cash_flow_table(cash_flows: list[PeriodCashFlow]) -> None` | Shows the formatted table and the CSV download button. |
 | `ui/chart.py` | `build_settlement_chart(cash_flows: list[PeriodCashFlow], fixed_rate: float) -> alt.Chart` | Pure builder, testable without Streamlit. |
+| `ui/chart.py` | `build_panels(cash_flows, fixed_rate, highlight_period=None) -> tuple[LayerChart, LayerChart, LayerChart]`; `build_settlement_chart` gains the optional `highlight_period` (backward compatible) | D9. The vconcat stays the tested contract; the app renders the three panels separately so each fits the column. |
+| `ui/results.py` | `render_insights(cash_flows, summary, inputs) -> None` | D9. Three chips; reads engine output only. |
 | `ui/chart.py` | `render_settlement_chart(cash_flows, fixed_rate) -> None` | Calls `st.altair_chart` at full container width (use whichever width argument the installed Streamlit version documents). |
 | `ui/explainer.py` | `render_explainer() -> None` | One collapsed expander. |
 | `ui/walkthrough.py` | `render_walkthrough(cash_flows: list[PeriodCashFlow], inputs: SwapInputs) -> None`; pure helpers `build_steps(flow, inputs) -> list[Step]`, `settlement_sentence(flow, inputs) -> str` | Reads engine output only; never recalculates. Added 2026-11-12 (D8); not part of the original frozen set. |
@@ -315,13 +321,35 @@ Colours used in code (keep them in `ui/formatting.py` as constants): `POSITIVE =
 - **Top tooltip:** Period, floating and fixed rate, floating and fixed payment. This is the fixed-vs-floating payment comparison: payments are `N × rate × α`, so they scale with the lines.
 - **Middle (height ~220):** net settlement bars, coloured `POSITIVE` if > 0, `NEGATIVE` if < 0 and `MUTED` if 0. A zero baseline rule. Tooltip shows Period, Floating rate, Net settlement.
 - **Bottom (height ~140, added 2026-11-12):** cumulative net as a `TEXT`-coloured (greyscale) line with points and a zero rule.
-- A one-line `st.caption` above the chart explains how to read the three panels.
+- *(UI review, 2026-11-12)* Each panel has a heading right above it: the title with its unit ("Floating vs fixed rate (%)", "Net settlement each period ($)", "Running total ($)") plus an inline colour key (Floating / Fixed; You receive / You pay; "Above 0 means you are ahead overall"). There are no rotated y-axis titles. One muted hint line under "Cash flows over time" explains hover, click and the shaded column; it replaces the old paragraph caption. The walkthrough's period (default 1) is shaded from the first load.
 - No chart titles inside the chart (the page already gives context). Small axis labels in `MUTED`. Legends are hidden because the colours are explained by the hero and the sign.
 
 ### 9.5 Copy
 - Verdict template: `"over {T} years · floating averaged {avg} vs {K} fixed"`.
 - Hero label: `"You receive"` if total > 0, `"You pay"` if < 0, `"You break even"` if 0.
 - Explainer: ≤ 200 words *(was 120; raised 2026-11-12, D8)* covering a symbol table (N, K, Lᵢ, α), the two payment formulas, who pays whom in Party A / Party B terms, what an IRS is, why firms use one (hedging, matching assets to liabilities), that only the net amount is exchanged, and what pay-fixed vs receive-fixed means. Use the §3 worked example as the illustration.
+
+### 9.8 Full-width asymmetric layout (added 2026-11-12, D10, supersedes the centred column in §9.1)
+- `st.set_page_config(layout="wide")`. The content is capped at 1760 px, with fluid side gutters.
+- **Header:** the title (one line on desktop at full size, `white-space: nowrap` ≥ 1024 px) with the lede directly underneath on the same left edge (max 68ch). *(UI review: the lede previously sat in a separate right-hand column aligned with nothing.)* Top padding is 1.25rem.
+- **Notional readout:** `st.number_input` cannot group digits (sprintf.js), so a caption directly under the field shows the amount as `$1,000,000`. The field and readout share one tight container (`gap="xxsmall"`).
+- **Body 2 : 3:**
+  - Body: the **controls rail** (40%) holds the Swap terms card, the Floating rates card and the collapsed "How a swap works". *(UI review, 2026-11-12)* It scrolls with the page. The page has one scroll only: no sticky regions and no region with its own scrollbar (an earlier sticky rail scrolled internally and clipped its bottom). `tests/unit/test_theme.py` guards this.
+  - The **results canvas** (60%) holds the hero, the chips, "Cash flows over time" (three charts) and the payment schedule.
+- **Last, full page width:** "Show the maths, step by step". It has the period slider, then a 5 : 6 pair: the flow diagram (the notional note sits under its box), verdict and rule of thumb on the left, beside the five formula steps.
+- **Inside the rail:** Notional (full width); Fixed rate | Tenor; Frequency (full width); Position (full width). Nothing clips at a 1280 px viewport.
+- **Hero:** a CSS grid inside the card. The label, amount and verdict take 1.5fr; the two leg cards are stacked in 1fr. It becomes one column under 720 px.
+- **Phones:** Streamlit stacks the columns: header, rail, then canvas.
+- Still holds: one focal number, colour roles from §9.7, ≤ 3 icons, no dividers, no Run button.
+
+### 9.7 Interactive layer and visual refresh (added 2026-11-12, D9)
+- **Colour roles** (replace the old greyscale-only rule): green/red = money *you* receive/pay (hero, bars, net arrow); amber `#B45309` = fixed leg / Party A; teal `#0E7490` = floating leg / Party B; indigo `#4F46E5` = controls, selection, focus; slate greys for everything else. Every coloured value still carries a sign or a word.
+- **Surfaces:** the inputs and rates sit in white bordered cards on a cool off-white page; the hero is a tinted card (green/red/grey tint matching the sign) holding the one large number plus the two leg totals with their colour dots. Expanders are white. No dividers, no nested cards, max 3 icons (unchanged).
+- ~~Quick scenarios~~: removed in D10 (duplicated the presets).
+- **Insight chips** under the hero: break-even fixed rate (= average floating rate, because accruals are equal), periods in your favour, largest settlement.
+- **Charts:** rendered as three stretch-width Altair charts with a fixed y-axis width so their plot areas align. Each has a near-transparent band layer carrying the shared tooltip, a hover tint, the click selection `period_pick` and a tint on the walkthrough's period. A new click sets `st.session_state["walkthrough_period"]` and reruns. The rate axis does not start at zero; the fixed rate is one dashed horizontal rule.
+- **Flow diagram:** inline SVG in the walkthrough: Party A (amber) and Party B (teal), a "You" badge on the user's side, faint gross legs ("they offset"), and a bold net arrow from payer to receiver in the user's green/red. The notional appears as "never exchanged". It has a `role="img"` aria-label and scrolls sideways under 520 px.
+- **Theme:** `.streamlit/config.toml` tokens (baseRadius 0.75rem, pill buttons, border colour) plus `ui/theme.py` CSS that targets only `st-key-*` classes and our own `irs-*` classes.
 
 ### 9.6 Learning aids (added 2026-11-12, D8)
 - **Walkthrough:** `render_walkthrough` sits between the chart and the table in an expander "Show the maths, step by step" (open by default, no icon, so the 3-icon cap holds). A `st.select_slider` picks the period (hidden for a 1-period swap). Five steps, each a bold title + one plain sentence + `st.latex`: (1) `α = 1/f`, (2) `P_fixed = N × K × α`, (3) `P_float = N × Lᵢ × α`, (4) net in the user's view, (5) cumulative total, all with the user's numbers substituted.
@@ -342,6 +370,7 @@ There are two layers, both run by plain `pytest` locally and in CI (§12). Integ
 | `test_validation.py` | M3 | Each limit at boundary, just inside and just outside. The message names the period. Defaults are valid. |
 | `test_export.py`, `test_formatting.py` | M4 | Column order, rates ×100, CSV round-trip, rounding, sign formatting including the zero case |
 | `test_chart.py` | M5 | `build_settlement_chart(...).to_dict()` has 3 sub-charts, the colour condition (grey for zero), payment tooltips and the cumulative panel. Empty input and 120 periods do not crash. |
+| `test_flow_diagram.py` | M6 | SVG is well formed, legs labelled, net direction + colour for both positions and zero, "You" badge placement. |
 | `test_walkthrough.py` | M6 | Formulas show the user's numbers (brief sample), receive-fixed net formula, who-pays-whom sentence for both positions and zero, period picker and the 1-period case. |
 
 ### 10.2 Integration tests (`tests/integration/`): several real modules working together

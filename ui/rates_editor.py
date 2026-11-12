@@ -14,11 +14,13 @@ PRESET_HELP = (
 
 def render_rate_editor(num_periods: int) -> list[float]:
     """Render preset, start rate and editable table. Return num_periods decimal rates."""
+    # Spec §8 defaults, seeded once into session state (no `default=`/`value=` conflicts).
+    st.session_state.setdefault("preset", RatePreset.RISING)
+    st.session_state.setdefault("start_rate", 3.5)
     st.subheader("Floating rates")
     preset = st.segmented_control(
         "Preset",
         list(RatePreset),
-        default=RatePreset.RISING,
         format_func=lambda option: option.name.title(),
         key="preset",
         help=PRESET_HELP,
@@ -30,7 +32,6 @@ def render_rate_editor(num_periods: int) -> list[float]:
         "Start rate (%)",
         min_value=0.0,
         max_value=30.0,
-        value=3.5,
         step=0.05,
         key="start_rate",
         help="The floating rate in period 1. The preset moves it from there.",

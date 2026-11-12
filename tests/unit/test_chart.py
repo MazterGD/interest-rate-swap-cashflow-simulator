@@ -70,7 +70,7 @@ def test_top_panel_height():
     cash_flows = make_cashflows(WORKED_EXAMPLE_NETS)
     d = build_settlement_chart(cash_flows, FIXED_RATE).to_dict()
     top_height = d["vconcat"][0].get("height", None)
-    assert top_height == 140, f"Top panel height should be 140, got {top_height}"
+    assert top_height == 180, f"Top panel height should be 180, got {top_height}"
 
 
 def test_bottom_panel_height():
@@ -78,7 +78,7 @@ def test_bottom_panel_height():
     cash_flows = make_cashflows(WORKED_EXAMPLE_NETS)
     d = build_settlement_chart(cash_flows, FIXED_RATE).to_dict()
     bottom_height = d["vconcat"][1].get("height", None)
-    assert bottom_height == 220, f"Bottom panel height should be 220, got {bottom_height}"
+    assert bottom_height == 250, f"Net panel height should be 250, got {bottom_height}"
 
 
 def test_positive_and_negative_nets_in_data():
@@ -109,11 +109,74 @@ def test_zero_net_bar_is_neutral_not_red():
 
 def test_cumulative_panel_plots_running_total():
     d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE).to_dict()
-    assert d["vconcat"][2]["height"] == 140
+    assert d["vconcat"][2]["height"] == 180
     assert _layers(d, 2)[0]["encoding"]["y"]["field"] == "Cumulative"
 
 
-def test_rate_tooltip_compares_fixed_and_floating_payments():
+def test_shared_tooltip_compares_fixed_and_floating_payments():
+    """Every panel's top band carries one tooltip with both payments, net and cumulative."""
     d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE).to_dict()
-    fields = {t["field"] for t in _layers(d, 0)[0]["encoding"]["tooltip"]}
-    assert {"Fixed Payment", "Floating Payment"} <= fields
+    for panel in range(3):
+        band = _layers(d, panel)[-1]
+        fields = {t["field"] for t in band["encoding"]["tooltip"]}
+        assert {"Fixed Payment", "Floating Payment", "Net", "Cumulative"} <= fields
+
+
+def test_click_selection_is_shared_across_panels():
+    """One `period_pick` click selection (on Period) drives the walkthrough (spec §9.6)."""
+    from ui.chart import PICK_PARAM
+
+    d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE).to_dict()
+    params = {p["name"]: p for p in d.get("params", [])}
+    assert params[PICK_PARAM]["select"]["on"] == "click"
+    assert params[PICK_PARAM]["select"]["fields"] == ["Period"]
+    assert "hover" in params
+
+
+def test_highlight_period_tints_that_band():
+    d = build_settlement_chart(make_cashflows(WORKED_EXAMPLE_NETS), FIXED_RATE, 3).to_dict()
+    assert "datum.Period === 3" in str(_layers(d, 1)[-1]["encoding"]["opacity"])
+
+
+def test_picked_period_reads_streamlit_selection_event():
+    from ui.chart import PICK_PARAM, _picked_period
+
+    assert _picked_period({"selection": {PICK_PARAM: [{"Period": 2}]}}) == 2
+    assert _picked_period({"selection": {PICK_PARAM: []}}) is None
+    assert _picked_period(None) is None
+
+
+def test_each_panel_has_a_heading_with_a_colour_key():
+    """Panels are labelled where they are read, not explained in a paragraph (D10 review)."""
+    from ui.chart import PANEL_HEADINGS, PANEL_KEYS, panel_heading_html
+    from ui.formatting import FIXED, FLOATING
+
+    assert len(PANEL_HEADINGS) == len(PANEL_KEYS) == 3
+    html = panel_heading_html(*PANEL_HEADINGS[0])
+    assert "Floating vs fixed rate (%)" in html
+    assert f"color: {FLOATING}" in html and f"color: {FIXED}" in html
+    assert html.count('aria-hidden="true"') == 2  # swatches are decorative; the text carries meaning
+    net_html = panel_heading_html(*PANEL_HEADINGS[1])
+    assert "You receive" in net_html and "You pay" in net_html
+
+
+def _render_chart() -> None:
+    from swap.engine import simulate_swap
+    from swap.models import Position, SwapInputs
+    from ui.chart import render_settlement_chart
+
+    inputs = SwapInputs(1_000_000, 0.04, 2, 2, Position.PAY_FIXED)
+    render_settlement_chart(simulate_swap(inputs, [0.035, 0.04, 0.045, 0.05]), inputs.fixed_rate)
+
+
+def test_render_shows_hint_headings_and_three_charts():
+    from streamlit.testing.v1 import AppTest
+    from ui.chart import CHART_HINT, PANEL_HEADINGS
+
+    at = AppTest.from_function(_render_chart).run()
+    assert not at.exception
+    text = "\n".join(str(m.value) for m in at.markdown)
+    assert CHART_HINT in text
+    for title, _ in PANEL_HEADINGS:
+        assert title in text
+    assert not at.caption  # no paragraph-style chart instructions any more
